@@ -1,10 +1,12 @@
-#!/usr/bin/python3
+#! /usr/bin/env python3
 import os
 
-from util.config_file import load_config
+from util.config_file import load_config, build_config
 
 print('这个脚本会带领你加一个 flask 的 api 到项目中')
 print(f'先确保你在项目的根目录!, 当前目录: {os.getcwd()} \n\n')
+
+build_config('fapi.yaml')
 
 config = load_config('fapi.yaml')
 
