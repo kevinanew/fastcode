@@ -1,8 +1,39 @@
+# 服务的URL前缀，包含版本号和服务的前缀
+url_prefix: /v1/tag
+
 # API 的请求类型: get/put/post/delete
-http_method: get
+http_method: put
 
 # URL后半部分 (例如 /v1/product/item/<item_id> 中的 /item/<item_id>)
-url_part: /item/<item_id>
+url_part: /project/<project_id>/item/<item_id>
 
 # 功能说明 (例如 用户创建产品)
-api_description: 创建产品
+api_description: 添加标签
+
+# [XXX]ServiceView 和 [XXX]ClientApiView
+api_class_name: AddItemTag
+
+# API 传的 JSON 参数
+# 例如:
+# json_args:
+#   user_id:
+#     type: uuid
+#     value: uuid4
+#   tag:
+#     type: str
+#     value: 测试标签
+#   quantity:
+#     type: int
+#     value: 1
+#   create_at:
+#     type: datetime
+
+json_args:
+  user_id:
+    type: uuid
+    value: $user_id
+    description: 用户的ID
+  tag:
+    type: str
+    value: 测试标签
+    description: 标签的内容

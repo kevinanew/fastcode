@@ -1,31 +1,58 @@
 #! /usr/bin/env python3
 import os
+import re
 
+from util.code_file import add_python_code
 from util.config_file import load_config, build_config
 
 print('这个脚本会带领你加一个 flask 的 api 到项目中')
-print(f'先确保你在项目的根目录!, 当前目录: {os.getcwd()} \n\n')
+print(f'先确保你在项目的项目根目录!, 当前目录: {os.getcwd()} \n\n')
+
+print('检查 ./src 目录')
+cwd = os.getcwd()
+assert os.path.exists(os.path.join(cwd, 'src'))
 
 build_config('fapi.yaml')
 
+input('点击回车，编辑 fapi.yaml\n')
+os.system('vi fapi.yaml')
+
 config = load_config('fapi.yaml')
 
+# 读取 config
+print(f'config: {config}')
 http_method = config['http_method']
+url_prefix = config['url_prefix']
 url_part = config['url_part']
 api_description = config['api_description']
+api_class_name = config['api_class_name']
+
+json_args = config['json_args']
+request_json_args = {}
+for _args_name, _args_value in json_args.items():
+    request_json_args[_args_name] = _args_value['value']
+json_doc = {}
+for _args_name, _args_value in json_args.items():
+    json_doc[_args_name] = _args_value['description']
+
+api_class_name_with_underscore = re.sub(r"([A-Z])", r" \1",
+                                        api_class_name).split()
+api_class_name_with_underscore = '_'.join(
+    api_class_name_with_underscore).lower()
 
 ################
 # Service Api
 ################
 service_code = f'''
 @class_route(blueprint, '{url_part}', methods=['{http_method.upper()}'])
-class PutService({http_method.capitalize()}View):
-    args_deserializer_class = serializers.ServiceValidator
-    put_serializer_class = serializers.ResultSerializer
-    
+class {api_class_name}Service({http_method.capitalize()}View):
+    args_deserializer_class = serializers.{api_class_name}Serializer
+    {http_method}_serializer_class = serializers.ResultSerializer
+
     def save(self):
+        pass
 '''
-print(service_code)
+add_python_code('src/apps/item_tag/services.py', service_code)
 
 ################
 # Client Api
@@ -33,7 +60,7 @@ print(service_code)
 if http_method == 'get':
     client_api_code = f'''
 @class_route(client_apis_blueprint,'{url_part}')
-class GetClientApi(GetService):
+class {api_class_name}ClientApi({api_class_name}Service):
     def get_object(self):
         if self.kong_user_id != self.validated_data['user_id']:
             raise PermissionDenied
@@ -43,29 +70,86 @@ class GetClientApi(GetService):
 else:
     client_api_code = f'''
 @class_route(client_apis_blueprint,'{url_part}')
-class {http_method.capitalize()}ClientApi({http_method.capitalize()}Service):    
+class {api_class_name}ClientApi({api_class_name}Service):    
     def save(self):
-        self.validated_data['user_id'] = self.kong_user_id
+        if self.kong_user_id != self.validated_data['user_id']:
+            raise PermissionDenied
+
         return super().save()
 '''
-print(client_api_code)
+add_python_code('src/apps/item_tag/client_api.py', client_api_code)
 
 ##########################
-# Test service Api
+# Test service API
 ##########################
+_url_part = url_part.replace('<', '{').replace('>', '}')
 service_test_code = f'''
     @api_docs(title='{api_description}',
-              path='/service/v1/{url_part}',
+              path='/service{url_prefix}{url_part}',
               method='{http_method.upper()}',
+              body={json_doc},
               file='service.md')
-    def test_{http_method}_XXX(self, client: FlaskClient):
+    def test_{api_class_name_with_underscore}_service(self,
+                                                      client: FlaskClient):
         self.client = client
+        
+        user_id = str(uuid.uuid4())
+        
         response = client.{http_method}(
-            '/service/v1/{url_part}',
-            json={{ }}
+            f'/service{url_prefix}{_url_part}',
+            json={request_json_args}
         )
         assert response.json['ok'] is True
         assert response.json['result']
         
+        return {{'正常响应': response.json}}
 '''
-print(service_test_code)
+service_test_code = service_test_code.replace(
+    "'$user_id'", 'user_id')
+add_python_code('src/unittests/test_services.py', service_test_code)
+
+##########################
+# Test client API
+##########################
+client_api_test_code = f'''
+    @api_docs(title='{api_description}',
+              path='{url_prefix}{url_part}',
+              method='{http_method.upper()}',
+              body={json_doc},
+              file='client.md')
+    def test_{api_class_name_with_underscore}_api(self, client: FlaskClient):
+        self.client = client
+        
+        user_id = str(uuid.uuid4())
+        response = client.{http_method}(
+            f'{url_prefix}{_url_part}',
+            headers=kong_user_header(user_id),
+            json={request_json_args}
+        )
+        assert response.json['ok'] is True
+        assert response.json['result']
+        
+        return {{'正常响应': response.json}}
+'''
+client_api_test_code = client_api_test_code.replace(
+    "'$user_id'", 'user_id')
+add_python_code('src/unittests/test_client_api.py', client_api_test_code)
+
+
+def build_serializer():
+    code = f'class {api_class_name}Serializer(Schema):\n'
+    for _args_name, _args_value in json_args.items():
+        if _args_value['type'] == 'uuid':
+            code += f'   {_args_name} = fields.UUID(required=True)\n'
+        elif _args_value['type'] == 'str':
+            code += f'   {_args_name} = fields.Str(required=True)\n'
+        elif _args_value['type'] == 'datetime':
+            code += f'   {_args_name} = fields.DateTime(required=True)\n'
+        elif _args_value['type'] == 'int':
+            code += f'   {_args_name} = fields.Integer(required=True)\n'
+        else:
+            raise Exception(f'unknown type: {_args_value["type"]}')
+
+    return f'\n\n{code}'
+
+add_python_code('src/apps/item_tag/serializers.py', build_serializer())

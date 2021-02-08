@@ -1,0 +1,69 @@
+#! /usr/bin/env python3
+import os
+
+cwd = os.getcwd()
+assert os.path.exists(os.path.join(cwd, 'src'))
+
+app_name = [
+    d for d in os.listdir('src/apps')
+    if os.path.exists(f'src/apps/{d}/serializers.py')
+][0]
+
+##################
+# 创建新的文件
+##################
+url_prefix = input('服务的URL前缀，包含版本号和服务的前缀, 例如 /v1/tag')
+api_py = os.path.join(cwd, f'src/apps/{app_name}/client_api.py')
+if not os.path.exists(api_py):
+    print(f'创建 {api_py}')
+    with open(api_py, 'w', encoding="utf-8") as _file:
+        _file.write('''
+from flask import Blueprint
+
+from extensions.flask_api.api import class_route
+from extensions.flask_api.exceptions import PermissionDenied
+
+client_apis_blueprint = Blueprint('client', __name__, url_prefix='/v1')
+
+
+''')
+    os.system(f'git add {api_py}')
+
+
+test_init_py = os.path.join(cwd, f'src/unittests/__init__.py')
+is_empty = len(open(test_init_py).read()) == 0
+if is_empty:
+    print(f'创建 {test_init_py}')
+    with open(test_init_py, 'w', encoding="utf-8") as _file:
+        _file.write('''
+from flask.testing import FlaskClient
+
+
+def kong_user_header(user_id):
+    return {'x-authenticated-userid': str(user_id), 'App-ID': 'test'}
+
+
+class TestService:
+    client: FlaskClient = None
+''')
+    os.system(f'git add {test_init_py}')
+
+
+api_test_py = os.path.join(cwd, f'src/unittests/test_client_api.py')
+if not os.path.exists(api_test_py):
+    print(f'创建 {api_test_py}')
+    with open(api_test_py, 'w', encoding="utf-8") as _file:
+        _file.write('''
+import uuid
+
+from flask.testing import FlaskClient
+
+from unittests import TestService
+from unittests.docs import api_docs
+
+
+class TestClientApi(TestService):
+    pass
+
+''')
+    os.system(f'git add {api_test_py}')
