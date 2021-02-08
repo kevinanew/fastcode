@@ -1,0 +1,69 @@
+#!/usr/bin/python3
+import os
+
+from util.config_file import load_config
+
+print('这个脚本会带领你加一个 flask 的 api 到项目中')
+print(f'先确保你在项目的根目录!, 当前目录: {os.getcwd()} \n\n')
+
+config = load_config('fapi.yaml')
+
+http_method = config['http_method']
+url_part = config['url_part']
+api_description = config['api_description']
+
+################
+# Service Api
+################
+service_code = f'''
+@class_route(blueprint, '{url_part}', methods=['{http_method.upper()}'])
+class PutService({http_method.capitalize()}View):
+    args_deserializer_class = serializers.ServiceValidator
+    put_serializer_class = serializers.ResultSerializer
+    
+    def save(self):
+'''
+print(service_code)
+
+################
+# Client Api
+################
+if http_method == 'get':
+    client_api_code = f'''
+@class_route(client_apis_blueprint,'{url_part}')
+class GetClientApi(GetService):
+    def get_object(self):
+        if self.kong_user_id != self.validated_data['user_id']:
+            raise PermissionDenied
+
+        return super().get_object()
+'''
+else:
+    client_api_code = f'''
+@class_route(client_apis_blueprint,'{url_part}')
+class {http_method.capitalize()}ClientApi({http_method.capitalize()}Service):    
+    def save(self):
+        self.validated_data['user_id'] = self.kong_user_id
+        return super().save()
+'''
+print(client_api_code)
+
+##########################
+# Test service Api
+##########################
+service_test_code = f'''
+    @api_docs(title='{api_description}',
+              path='/service/v1/{url_part}',
+              method='{http_method.upper()}',
+              file='service.md')
+    def test_{http_method}_XXX(self, client: FlaskClient):
+        self.client = client
+        response = client.{http_method}(
+            '/service/v1/{url_part}',
+            json={{ }}
+        )
+        assert response.json['ok'] is True
+        assert response.json['result']
+        
+'''
+print(service_test_code)

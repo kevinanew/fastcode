@@ -1,0 +1,8 @@
+# API 的请求类型: get/put/post/delete
+http_method: get
+
+# URL后半部分 (例如 /v1/product/item/<item_id> 中的 /item/<item_id>)
+url_part: /item/<item_id>
+
+# 功能说明 (例如 用户创建产品)
+api_description: 创建产品
