@@ -1,0 +1,15 @@
+#!/bin/bash
+
+echo "创建 venv"
+python3 -m venv venv
+source venv/bin/activate
+cd src
+poetry install
+
+echo "STAGE=development"
+
+# 不需要 cassandra 和 kafka 的时候，就用这个 conftest.py
+cp ~/project/tag_flask/src/unittests/conftest.py src/unittests/conftest.py
+
+# 不需要 kafka 的时候使用的 live
+cp ~/project/tag_flask/src/apps/healthz/views.py src/apps/healthz/views.py

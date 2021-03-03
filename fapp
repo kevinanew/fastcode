@@ -4,32 +4,49 @@ import os
 cwd = os.getcwd()
 assert os.path.exists(os.path.join(cwd, 'src'))
 
-app_name = [
-    d for d in os.listdir('src/apps')
-    if os.path.exists(f'src/apps/{d}/serializers.py')
-][0]
+app_name = input('flask app 的名字: ')
+url_prefix = input('服务的URL前缀，包含版本号和服务的前缀, 例如 /v1/tag')
 
 ##################
-# 创建新的文件
+# 创建 api 文件
 ##################
-url_prefix = input('服务的URL前缀，包含版本号和服务的前缀, 例如 /v1/tag')
+
 api_py = os.path.join(cwd, f'src/apps/{app_name}/client_api.py')
 if not os.path.exists(api_py):
     print(f'创建 {api_py}')
     with open(api_py, 'w', encoding="utf-8") as _file:
-        _file.write('''
+        _file.write(f'''
 from flask import Blueprint
 
 from extensions.flask_api.api import class_route
 from extensions.flask_api.exceptions import PermissionDenied
 
-client_apis_blueprint = Blueprint('client', __name__, url_prefix='/v1')
+client_blueprint = Blueprint('client', __name__, url_prefix='{url_prefix}')
 
 
 ''')
     os.system(f'git add {api_py}')
 
 
+service_py = os.path.join(cwd, f'src/apps/{app_name}/client_api.py')
+if not os.path.exists(service_py):
+    print(f'创建 {service_py}')
+    with open(service_py, 'w', encoding="utf-8") as _file:
+        _file.write(f'''
+from flask import Blueprint
+
+from extensions.flask_api.api import class_route
+
+service_blueprint = Blueprint('service', __name__, url_prefix='{url_prefix}')
+
+
+''')
+    os.system(f'git add {service_py}')
+
+
+##################
+# 创建 tests 文件
+##################
 test_init_py = os.path.join(cwd, f'src/unittests/__init__.py')
 is_empty = len(open(test_init_py).read()) == 0
 if is_empty:

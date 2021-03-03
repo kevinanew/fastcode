@@ -26,6 +26,7 @@ url_prefix = config['url_prefix']
 url_part = config['url_part']
 api_description = config['api_description']
 api_class_name = config['api_class_name']
+app_name = config['app_name']
 
 json_args = config['json_args']
 request_json_args = {}
@@ -52,7 +53,7 @@ class {api_class_name}Service({http_method.capitalize()}View):
     def save(self):
         pass
 '''
-add_python_code('src/apps/item_tag/services.py', service_code)
+add_python_code(f'src/apps/{app_name}/services.py', service_code)
 
 ################
 # Client Api
@@ -77,7 +78,7 @@ class {api_class_name}ClientApi({api_class_name}Service):
 
         return super().save()
 '''
-add_python_code('src/apps/item_tag/client_api.py', client_api_code)
+add_python_code(f'src/apps/{app_name}/client_api.py', client_api_code)
 
 ##########################
 # Test service API
@@ -152,4 +153,4 @@ def build_serializer():
 
     return f'\n\n{code}'
 
-add_python_code('src/apps/item_tag/serializers.py', build_serializer())
+add_python_code(f'src/apps/{app_name}/serializers.py', build_serializer())

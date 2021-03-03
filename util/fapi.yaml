@@ -1,3 +1,6 @@
+# app 的目录名称 src/apps/<XXXX>
+app_name: item_tag
+
 # 服务的URL前缀，包含版本号和服务的前缀
 url_prefix: /v1/tag
 

@@ -1,0 +1,13 @@
+#! /usr/bin/env python3
+"""
+add engine
+"""
+import os
+
+engine_name = input('请输入引擎的名字 (例如 tag_engine): ')
+os.system(f'mkdir -p {engine_name}/model')
+os.system(f'touch {engine_name}/model/__init__.py')
+os.system(f'mkdir -p {engine_name}/controller')
+os.system(f'mkdir -p {engine_name}/unittests')
+os.system(f'mkdir -p {engine_name}/unittests/model')
+os.system(f'mkdir -p {engine_name}/unittests/controller')
