@@ -2,10 +2,11 @@
 import os
 
 cwd = os.getcwd()
+print('check src dir')
 assert os.path.exists(os.path.join(cwd, 'src'))
 
 app_name = input('flask app 的名字: ')
-url_prefix = input('服务的URL前缀，包含版本号和服务的前缀, 例如 /v1/tag')
+url_prefix = input('服务的URL前缀，包含版本号和服务的前缀, 例如 /v1/tag: ')
 
 ##################
 # 创建 api 文件
@@ -79,8 +80,32 @@ from unittests import TestService
 from unittests.docs import api_docs
 
 
+def kong_user_header(user_id):
+    return {'x-authenticated-userid': str(user_id), 'App-ID': 'test'}
+
+
 class TestClientApi(TestService):
     pass
 
 ''')
     os.system(f'git add {api_test_py}')
+
+
+servcie_test_py = os.path.join(cwd, f'src/unittests/test_service.py')
+if not os.path.exists(service_test_py):
+    print(f'创建 {service_test_py}')
+    with open(service_test_py, 'w', encoding="utf-8") as _file:
+        _file.write('''
+import uuid
+
+from flask.testing import FlaskClient
+
+from unittests import TestService
+from unittests.docs import api_docs
+
+
+class TestServiceApi(TestService):
+    pass
+    
+''')
+    os.system(f'git add {servcie_test_py}')
