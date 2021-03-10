@@ -1,0 +1,16 @@
+#! /usr/bin/env python3
+import os
+
+os.system('cp -r ~/project/flask_template/.gitignore .')
+
+lib_name = input('类库的名字是什么: ')
+if not os.path.exists(f'src/{lib_name}'):
+    os.makedirs(f'src/{lib_name}')
+
+
+if not os.path.exists(f'src/{lib_name}/__init__.py'):
+    open(f'src/{lib_name}/__init__.py', 'w').close()
+
+
+if not os.path.exists('src/extensions/redis_cluster'):
+    os.system('cp -r ~/project/flask_template/src/extensions/redis_cluster src/extensions')

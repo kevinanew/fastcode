@@ -3,7 +3,7 @@ import os
 import re
 
 from util.code_file import add_python_code
-from util.config_file import load_config, build_config
+from util.config_file import load_config, build_config, edit_config
 
 print('这个脚本会带领你加一个 flask 的 api 到项目中')
 print(f'先确保你在项目的项目根目录!, 当前目录: {os.getcwd()} \n\n')
@@ -13,10 +13,7 @@ cwd = os.getcwd()
 assert os.path.exists(os.path.join(cwd, 'src'))
 
 build_config('fapi.yaml')
-
-input('点击回车，编辑 fapi.yaml\n')
-os.system('vi fapi.yaml')
-
+edit_config('fapi.yaml')
 config = load_config('fapi.yaml')
 
 # 读取 config
@@ -45,7 +42,7 @@ api_class_name_with_underscore = '_'.join(
 # Service Api
 ################
 service_code = f'''
-@class_route(blueprint, '{url_part}', methods=['{http_method.upper()}'])
+@class_route(service_blueprint, '{url_part}', methods=['{http_method.upper()}'])
 class {api_class_name}Service({http_method.capitalize()}View):
     args_deserializer_class = serializers.{api_class_name}Serializer
     {http_method}_serializer_class = serializers.ResultSerializer
@@ -60,7 +57,7 @@ add_python_code(f'src/apps/{app_name}/services.py', service_code)
 ################
 if http_method == 'get':
     client_api_code = f'''
-@class_route(client_apis_blueprint,'{url_part}')
+@class_route(client_api_blueprint,'{url_part}')
 class {api_class_name}ClientApi({api_class_name}Service):
     def get_object(self):
         if self.kong_user_id != self.validated_data['user_id']:
@@ -70,7 +67,7 @@ class {api_class_name}ClientApi({api_class_name}Service):
 '''
 else:
     client_api_code = f'''
-@class_route(client_apis_blueprint,'{url_part}')
+@class_route(client_api_blueprint,'{url_part}')
 class {api_class_name}ClientApi({api_class_name}Service):    
     def save(self):
         if self.kong_user_id != self.validated_data['user_id']:
@@ -107,7 +104,7 @@ service_test_code = f'''
 '''
 service_test_code = service_test_code.replace(
     "'$user_id'", 'user_id')
-add_python_code('src/unittests/test_services.py', service_test_code)
+add_python_code('src/unittests/test_service.py', service_test_code)
 
 ##########################
 # Test client API

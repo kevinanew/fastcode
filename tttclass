@@ -1,0 +1,79 @@
+#! /usr/bin/env python3
+import os
+import re
+
+from util.code_file import add_python_code
+from util.config_file import load_config, build_config, edit_config
+
+print('快速加入一个类和相关测试')
+
+#class_path = 'board_game/model'
+#class_name = 'PlayerPool'
+
+#class_path = 'ip_neighbor/model'
+#class_name = 'UserIpAddress'
+#class_name = 'IpNeighbor'
+
+build_config('tttclass.yaml')
+edit_config('tttclass.yaml')
+config = load_config('tttclass.yaml')
+
+class_path = config['class_path']
+class_name = config['class_name']
+
+print('class path:', class_path)
+print('class name:', class_name)
+
+
+class_root_dir = class_path.split('/')[0]
+class_sub_dir = '/'.join(class_path.split('/')[1:])
+
+
+if os.path.exists('src'):
+    os.chdir('src')
+
+if not os.path.exists(class_path):
+    os.makedirs(class_path)
+
+if not os.path.exists(f'{class_root_dir}/tests/{class_sub_dir}'):
+    os.makedirs(f'{class_root_dir}/tests/{class_sub_dir}')
+
+def camel_to_snake(name):
+  name = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+  return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
+
+
+class_file_name = camel_to_snake(class_name)
+
+if not os.path.exists(f'{class_path}/{class_file_name}.py'):
+    open(f'{class_path}/{class_file_name}.py', 'w').write(
+f'''
+class {class_name}:
+    def __init__(self):
+        pass
+''')
+
+print()
+print()
+function_name = input('请输入需要添加的函数名称: ')
+functions = [function_name ]
+
+for function_name in functions:
+    # add function in class
+    add_python_code(f'{class_path}/{class_file_name}.py',
+f'''
+    def {function_name}(self):
+        pass
+''')
+
+    # add test function
+    add_python_code(
+        f'{class_root_dir}/tests/{class_sub_dir}/test_{class_file_name}.py',
+f'''
+def test_{function_name}():
+    {class_file_name} = {class_name}()
+    assert {class_file_name}.{function_name}()
+'''
+)
+
+os.system('yapf -r -i .')

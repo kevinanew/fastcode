@@ -1,7 +1,12 @@
 import os
 import shutil
 
-import yaml
+try:
+    import yaml
+except ModuleNotFoundError:
+    import pip
+    pip.main(['install', 'pyyaml'])
+    import yaml
 
 
 def load_config(filename):
@@ -21,6 +26,12 @@ def build_config(filename):
     if not os.path.exists(config_path):
         print(f'创建配置文件: {filename}')
         shutil.copy(config_template, config_path)
+
+
+def edit_config(filename):
+    input(f'点击回车，编辑 {filename}\n')
+    os.system(f'vi {filename}')
+
 
 
 if __name__ == '__main__':
