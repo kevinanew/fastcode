@@ -70,7 +70,7 @@ f'''
     add_python_code(
         f'{class_root_dir}/tests/{class_sub_dir}/test_{class_file_name}.py',
 f'''
-def test_{function_name}():
+def test_{class_file_name}_{function_name}():
     {class_file_name} = {class_name}()
     assert {class_file_name}.{function_name}()
 '''

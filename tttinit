@@ -4,13 +4,98 @@ import os
 os.system('cp -r ~/project/flask_template/.gitignore .')
 
 lib_name = input('类库的名字是什么: ')
-if not os.path.exists(f'src/{lib_name}'):
-    os.makedirs(f'src/{lib_name}')
+assert lib_name
+
+if not os.path.exists(f'src/{lib_name}/tests'):
+    os.makedirs(f'src/{lib_name}/tests')
 
 
 if not os.path.exists(f'src/{lib_name}/__init__.py'):
     open(f'src/{lib_name}/__init__.py', 'w').close()
 
 
+if not os.path.exists(f'src/{lib_name}/tests/conftest.py'):
+    open(f'src/{lib_name}/tests/conftest.py', 'w').write(
+"""import uuid
+
+import pytest
+
+
+@pytest.fixture
+def user_id():
+    return str(uuid.uuid4())
+
+"""
+    )
+
+
 if not os.path.exists('src/extensions/redis_cluster'):
-    os.system('cp -r ~/project/flask_template/src/extensions/redis_cluster src/extensions')
+    os.system('mkdir -p src/extensions/redis_cluster')
+    os.system('cp -r ~/project/flask_template/src/extensions/redis_cluster src/extensions/')
+
+
+if not os.path.exists('.drone.yml'):
+    open(f'.drone.yml', 'w').write(
+f'''kind: pipeline
+type: docker
+name: Integration test
+
+concurrency:
+  limit: 1
+
+trigger:
+  event:
+  - push
+  - tag
+
+
+image_pull_secrets:
+- aliyun_hongkong_docker_config
+
+
+steps:
+
+- name: redis_cluster
+  image: grokzen/redis-cluster:5.0.0
+  pull: if-not-exists
+  detach: true
+  ports: [ 7000, 7001, 7002, 7003, 7004, 7005 ]
+  when:
+    event: push
+
+- name: tests
+  image: registry.cn-hongkong.aliyuncs.com/appdev/python-driver:3.9.1
+  environment:
+    STAGE: testing
+  commands:
+    - cd /drone/src/src; ls -al
+    - poetry config virtualenvs.create false
+    - poetry install -vvv --no-interaction --no-ansi
+    - coverage run --source={lib_name} -m pytest
+    # 确保代码被 100% 测试覆盖
+    - coverage report --fail-under 100
+    # Lint
+    - yapf -dr . | (! grep '.')
+    - pylava .
+    - isort . --check-only --diff
+  when:
+    event: push
+
+
+node:
+  ram: 2g
+
+'''
+    )
+
+if not os.path.exists('venv'):
+    os.system('python3 -m venv venv')
+
+
+print(f'> cd src/{lib_name}; poetry init')
+if not os.path.exists('src/pyproject.toml'):
+    os.system(f'cd src/{lib_name}; poetry init')
+
+
+os.system(f'cd src/{lib_name}; poetry add pytest coverage yapf pylava isort --dev')
+#os.system(f'cd src/{lib_name}; poetry add redis-py-cluster')
