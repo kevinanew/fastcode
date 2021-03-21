@@ -1,0 +1,13 @@
+#!/bin/bash
+array[0]="做的怎么样了？有没有什么问题"
+array[1]="写的怎么样了，需要帮助吗？"
+array[2]="有困难吗，开发的怎么样了？"
+array[3]="需要帮忙吗？写的如何了"
+array[4]="怎么样，还顺利吗，需要帮忙吗？"
+array[5]="进度如何，还顺利吗，有需要帮忙就说哈？"
+
+size=${#array[@]}
+index=$(($RANDOM % $size))
+answer=${array[$index]}
+echo $answer
+echo $answer|pbcopy
